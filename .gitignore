@@ -1,0 +1,28 @@
+# Secrets — never commit
+.env
+.env.*
+*.key
+*.pem
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Logs and data
+logs/
+*.log
+data/synthea/
+
+# OS
+.DS_Store
+
+# Snowflake
+load_all.sql
+
+# Additional secrets and backups
+pat.txt
+*.backup-*
+*.backup
+.env.backup*

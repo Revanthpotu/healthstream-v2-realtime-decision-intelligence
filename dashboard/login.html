@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthStream v2 — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body {
+  background: linear-gradient(135deg, #F5F8FC 0%, #E1E9F2 100%);
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1E293B;
+  -webkit-font-smoothing: antialiased;
+}
+.login-wrap {
+  background: #FFFFFF;
+  border: 1px solid #D6E1ED;
+  border-radius: 18px;
+  padding: 56px 48px 48px;
+  width: 460px;
+  box-shadow: 0 24px 80px rgba(13,71,161,.08);
+  text-align: center;
+  animation: fadeUp .5s ease both;
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+.brand { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 8px }
+.logo-mark {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: linear-gradient(135deg, #0D47A1, #1565C0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: white;
+  box-shadow: 0 6px 24px rgba(13,71,161,.25);
+}
+.brand-text { text-align: left }
+.brand-title { font-size: 24px; font-weight: 700; letter-spacing: -.4px }
+.brand-title span { color: #0D47A1 }
+.brand-sub { font-size: 10px; color: #94A3B8; letter-spacing: 1.8px; text-transform: uppercase; margin-top: 3px }
+.tagline {
+  font-size: 13px; color: #475569; margin: 24px 0 36px;
+}
+.role-btns { display: flex; flex-direction: column; gap: 14px }
+.role-btn {
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 2px solid #D6E1ED;
+  background: #FFFFFF;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  transition: all .18s ease;
+}
+.role-btn:hover {
+  border-color: #0D47A1;
+  background: #F5F8FC;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(13,71,161,.1);
+}
+.role-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.role-provider .role-icon { background: rgba(13,71,161,.08); color: #0D47A1 }
+.role-admin .role-icon { background: rgba(217,119,6,.08); color: #D97706 }
+.role-executive .role-icon { background: rgba(46,139,87,.10); color: #2E8B57 }
+.role-info { flex: 1 }
+.role-name { font-size: 16px; font-weight: 600; color: #1E293B; margin-bottom: 3px }
+.role-desc { font-size: 12px; color: #94A3B8; line-height: 1.4 }
+.role-arrow { color: #94A3B8; font-size: 20px; transition: all .18s ease }
+.role-btn:hover .role-arrow { color: #0D47A1; transform: translateX(4px) }
+.footer { margin-top: 36px; font-size: 10.5px; color: #94A3B8; letter-spacing: .5px }
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="brand">
+    <div class="logo-mark">⚕</div>
+    <div class="brand-text">
+      <div class="brand-title">HealthStream <span>v2</span></div>
+      <div class="brand-sub">Real-Time Patient Data Platform</div>
+    </div>
+  </div>
+  <div class="tagline">Sign in to continue</div>
+  <div class="role-btns">
+    <button class="role-btn role-provider" onclick="login('provider')">
+      <div class="role-icon">👨‍⚕️</div>
+      <div class="role-info">
+        <div class="role-name">Login as Provider</div>
+        <div class="role-desc">View patient registry, vitals, conditions, and clinical alerts</div>
+      </div>
+      <div class="role-arrow">→</div>
+    </button>
+    <button class="role-btn role-admin" onclick="login('admin')">
+      <div class="role-icon">⚙️</div>
+      <div class="role-info">
+        <div class="role-name">Login as Admin</div>
+        <div class="role-desc">Monitor pipeline health, DLQ errors, connectors, and source integrations</div>
+      </div>
+      <div class="role-arrow">→</div>
+    </button>
+    <button class="role-btn role-executive" onclick="login('executive')">
+      <div class="role-icon">📊</div>
+      <div class="role-info">
+        <div class="role-name">Login as Executive</div>
+        <div class="role-desc">Leadership command center — readmission trends, financial exposure, and top risks</div>
+      </div>
+      <div class="role-arrow">→</div>
+    </button>
+  </div>
+  <div class="footer">Powered by Apache Kafka · ksqlDB · Redis · GPT-4o</div>
+</div>
+<script>
+async function login(role) {
+  await fetch('/api/set-role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role })
+  });
+  window.location.href = '/';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthStream v2 — Real-Time Healthcare Decision Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root {
+  --bg:#F5F8FC; --surface:#FFFFFF; --surface2:#EDF2F9; --surface3:#E1E9F2;
+  --border:#D6E1ED; --border2:#C4D1DF;
+  --text:#0F1B2D; --text2:#334155; --text3:#5B6B7F;
+  --accent:#0D47A1; --accent-glow:rgba(13,71,161,.08);
+  --blue:#1565C0; --blue-dim:rgba(21,101,192,.08);
+  --purple:#7C3AED; --purple-dim:rgba(124,58,237,.10);
+  --red:#DC2626; --red-dim:rgba(220,38,38,.06);
+  --orange:#D97706; --orange-dim:rgba(217,119,6,.06);
+  --green:#16A34A; --green-dim:rgba(22,163,74,.06);
+  --mono:'JetBrains Mono',monospace; --sans:'Outfit',system-ui,sans-serif;
+  --radius:14px; --radius-sm:10px;
+}
+html { scroll-behavior:smooth }
+body { background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.55; font-size:15px; overflow-x:hidden; -webkit-font-smoothing:antialiased }
+::-webkit-scrollbar { width:6px } ::-webkit-scrollbar-track { background:transparent } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes slideIn { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
+@keyframes modalIn { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
+.fade-up { animation:fadeUp .4s ease both }
+.d1{animation-delay:.04s}.d2{animation-delay:.08s}.d3{animation-delay:.12s}.d4{animation-delay:.16s}
+
+.container { max-width:1400px; margin:0 auto; padding:0 32px 56px }
+
+.header { display:flex; justify-content:space-between; align-items:center; padding:18px 0 16px }
+.logo-area { display:flex; align-items:center; gap:14px }
+.logo-mark { width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0D47A1,#1565C0); box-shadow:0 4px 24px rgba(13,71,161,.28); font-size:22px; color:#fff; flex-shrink:0 }
+.logo-text { font-size:22px; font-weight:700; letter-spacing:-.4px }
+.logo-text span { color:var(--accent) }
+.logo-sub { font-size:11.5px; color:var(--text2); letter-spacing:1.6px; text-transform:uppercase; margin-top:1px }
+.hdr-right { display:flex; align-items:center; gap:16px }
+.sys-badge { display:inline-flex; align-items:center; gap:7px; padding:5px 15px; border-radius:22px; font-size:11px; font-weight:600; letter-spacing:.5px; text-transform:uppercase }
+.sys-badge.healthy { background:var(--green-dim); color:var(--green); border:1px solid rgba(22,163,74,.2) }
+.sys-badge.degraded { background:var(--orange-dim); color:var(--orange); border:1px solid rgba(217,119,6,.2) }
+.sys-badge.unknown { background:var(--surface2); color:var(--text3); border:1px solid var(--border) }
+.sys-badge .dot { width:7px; height:7px; border-radius:50%; background:currentColor; animation:pulse 2s infinite }
+.clock { font-family:var(--mono); font-size:14px; color:var(--text2); letter-spacing:.8px; min-width:92px; text-align:right }
+.role-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 13px; border-radius:22px; font-size:11px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; border:1px solid var(--border) }
+.role-pill.provider { background:rgba(13,71,161,.08); color:var(--accent); border-color:rgba(13,71,161,.18) }
+.role-pill.admin { background:rgba(217,119,6,.08); color:var(--orange); border-color:rgba(217,119,6,.18) }
+.logout-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text2); border-radius:18px; padding:5px 13px; cursor:pointer; font-size:11px; font-family:var(--sans); font-weight:500; transition:all .15s }
+.logout-btn:hover { background:var(--surface3); color:var(--text) }
+
+.navbar { position:sticky; top:0; z-index:50; display:flex; gap:6px; padding:10px 0; background:rgba(245,248,252,.92); backdrop-filter:blur(10px); border-bottom:2px solid var(--border); margin-bottom:22px }
+.nav-link { background:none; border:none; padding:9px 18px; border-radius:10px; font-size:14px; font-weight:600; color:var(--text3); cursor:pointer; font-family:var(--sans); text-decoration:none; display:inline-flex; align-items:center; gap:7px; transition:all .15s }
+.nav-link:hover { color:var(--accent); background:var(--surface2) }
+.nav-link.active { color:var(--accent); background:var(--accent-glow) }
+
+.section { scroll-margin-top:76px; margin-bottom:26px }
+.section-head { display:flex; align-items:center; gap:9px; margin-bottom:14px }
+.section-head h2 { font-size:17px; font-weight:700; color:var(--text); letter-spacing:-.2px }
+.section-head .sh-ic { font-size:19px }
+.section-head .sh-sub { font-size:12.5px; color:var(--text3); margin-left:4px }
+
+/* ── Two-agent hero ── */
+.agents-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px }
+.agent-panel { border-radius:18px; padding:22px 24px; color:#fff; position:relative; overflow:hidden; box-shadow:0 12px 36px rgba(13,71,161,.22) }
+.agent-panel.clinical { background:linear-gradient(135deg,#0D47A1,#1565C0) }
+.agent-panel.analytics { background:linear-gradient(135deg,#5B21B6,#7C3AED); box-shadow:0 12px 36px rgba(124,58,237,.22) }
+.agent-phead { display:flex; align-items:center; gap:11px; position:relative }
+.agent-picon { width:42px; height:42px; border-radius:11px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0 }
+.agent-pname { font-size:17.5px; font-weight:700; letter-spacing:-.2px }
+.agent-ptag { font-size:12.5px; opacity:.9 }
+.agent-live { margin-left:auto; display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.16); padding:5px 11px; border-radius:16px; font-size:10.5px; font-weight:600 }
+.agent-live .dot { width:6px; height:6px; border-radius:50%; background:#6EE7B7; animation:pulse 2s infinite }
+.agent-collapse { background:rgba(255,255,255,.16); border:none; color:#fff; width:30px; height:30px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0 }
+.agent-collapse:hover { background:rgba(255,255,255,.28) }
+.chev { transition:transform .2s; display:inline-block; line-height:1 }
+.agent-body { margin-top:16px }
+.agent-panel.collapsed .agent-body { display:none }
+.agent-panel.collapsed .chev { transform:rotate(180deg) }
+
+/* chat bits (shared, on dark panels) */
+.chat-suggestions { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px }
+.agent-panel .chat-sug { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff; border-radius:18px; padding:6px 13px; cursor:pointer; font-size:11.5px; font-family:var(--sans); transition:all .15s }
+.agent-panel .chat-sug:hover { background:rgba(255,255,255,.28); border-color:#fff }
+.chat-msgs { max-height:300px; overflow-y:auto; margin-bottom:12px }
+.chat-msgs:empty { display:none }
+.chat-msg { padding:14px; margin-bottom:9px; border-radius:var(--radius-sm) }
+.chat-role { font-size:10px; text-transform:uppercase; letter-spacing:.6px; margin-bottom:6px; font-weight:600 }
+.chat-body { font-size:13.5px; line-height:1.7; white-space:pre-wrap }
+.chat-body strong { font-weight:700 }
+.chat-body code { background:rgba(0,0,0,.06); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:12.5px }
+.agent-panel .chat-msg.user { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22) }
+.agent-panel .chat-msg.user .chat-role { color:#dbe7ff }
+.agent-panel .chat-msg.user .chat-body { color:#fff }
+.agent-panel .chat-msg.bot { background:rgba(255,255,255,.97) }
+.agent-panel .chat-msg.bot .chat-role { color:var(--accent) }
+.agent-panel.analytics .chat-msg.bot .chat-role { color:var(--purple) }
+.agent-panel .chat-msg.bot .chat-body { color:var(--text) }
+.agent-panel .chat-msg.bot .chat-body strong { color:var(--accent) }
+.agent-panel.analytics .chat-msg.bot .chat-body strong { color:var(--purple) }
+.chat-input-row { display:flex; gap:9px }
+.agent-panel .chat-input { flex:1; padding:13px 18px; border-radius:var(--radius-sm); font-size:14px; background:rgba(255,255,255,.97); border:none; color:#0F1B2D; outline:none; font-family:var(--sans) }
+.agent-panel .chat-input::placeholder { color:#64748B }
+.agent-panel .chat-send { padding:13px 24px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; border:none; color:#fff; cursor:pointer; font-family:var(--sans); background:rgba(0,0,0,.22); transition:opacity .15s }
+.agent-panel .chat-send:hover { opacity:.85 }
+.agent-panel .chat-send:disabled { opacity:.4; cursor:wait }
+.typing-ind { font-size:12.5px; padding:10px 14px; animation:pulse 1.5s infinite; color:rgba(255,255,255,.85) }
+
+/* ── Stats (compact) ── */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px }
+body.role-provider .stats-row { grid-template-columns:repeat(4,1fr) }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px }
+.stat-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; font-weight:600 }
+.stat-val { font-family:var(--mono); font-size:30px; font-weight:700; line-height:1 }
+.stat-sub { font-size:11.5px; color:var(--text2); margin-top:6px }
+
+/* ── Cards ── */
+.card { background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); padding:20px }
+.card-title { font-size:12.5px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:14px; display:flex; align-items:center; gap:8px }
+.card-title .ic { font-size:16px }
+
+.src-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+.src-card { background:var(--surface2); border-radius:var(--radius-sm); padding:18px; border:1px solid var(--border); transition:all .15s }
+.src-card:hover { border-color:var(--border2); transform:translateY(-2px) }
+.src-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px }
+.src-name { display:flex; align-items:center; gap:9px; font-weight:600; font-size:15px }
+.src-name .em { font-size:19px }
+.src-method { font-size:12px; color:var(--text2); font-style:italic; margin-bottom:4px }
+.src-topic { font-family:var(--mono); font-size:11.5px; color:var(--blue); margin-bottom:12px }
+.src-foot { display:flex; justify-content:space-between; align-items:flex-end }
+.src-count { font-family:var(--mono); font-size:28px; font-weight:700 }
+.src-count-label { font-size:10px; color:var(--text2); text-transform:uppercase; letter-spacing:.6px }
+.dot-s { width:9px; height:9px; border-radius:50%; display:inline-block; flex-shrink:0 }
+.dot-s.healthy { background:var(--green); box-shadow:0 0 10px var(--green) }
+.dot-s.stale { background:var(--orange) } .dot-s.unknown { background:var(--text3) } .dot-s.critical { background:var(--red) }
+.badge { display:inline-block; padding:3px 11px; border-radius:20px; font-size:10px; font-weight:600; letter-spacing:.4px; text-transform:uppercase }
+.b-green { background:var(--green-dim); color:var(--green); border:1px solid rgba(22,163,74,.18) }
+.b-orange { background:var(--orange-dim); color:var(--orange); border:1px solid rgba(217,119,6,.18) }
+.b-red { background:var(--red-dim); color:var(--red); border:1px solid rgba(220,38,38,.18) }
+.b-blue { background:var(--blue-dim); color:var(--blue); border:1px solid rgba(21,101,192,.18) }
+.b-purple { background:var(--purple-dim); color:var(--purple); border:1px solid rgba(124,58,237,.2) }
+.b-muted { background:var(--surface3); color:var(--text2); border:1px solid var(--border) }
+
+.arch-flow { display:flex; align-items:center; justify-content:center; gap:6px; padding:16px 8px; flex-wrap:wrap }
+.arch-node { padding:13px 16px; border-radius:var(--radius-sm); text-align:center; background:var(--surface2); border:1px solid var(--border); min-width:90px; transition:transform .15s }
+.arch-node:hover { transform:translateY(-2px) }
+.arch-lbl { font-size:12.5px; font-weight:600; margin-top:3px }
+.arch-sub { font-size:10px; color:var(--text2) }
+.arch-arrow { color:var(--accent); font-size:19px; font-weight:700; opacity:.7 }
+.arch-kafka { background:linear-gradient(135deg,var(--accent-glow),var(--blue-dim)); border-color:rgba(13,71,161,.2); padding:13px 22px }
+.arch-kafka .arch-lbl { color:var(--accent); font-size:13px; font-weight:700 }
+
+.main-grid { display:grid; grid-template-columns:2.3fr 1fr; gap:14px }
+.tbl-wrap { max-height:520px; overflow-y:auto }
+table { width:100%; border-collapse:collapse }
+thead th { text-align:left; padding:11px 16px; font-size:12px; color:var(--text2); font-weight:700; text-transform:uppercase; letter-spacing:.8px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); z-index:3 }
+tbody td { padding:13px 16px; font-size:14px; color:var(--text); border-bottom:1px solid var(--border) }
+.p-row { cursor:pointer; transition:background .12s }
+.p-row:hover { background:var(--surface2) }
+.pid { font-family:var(--mono); color:var(--accent); font-size:13px; font-weight:600 }
+.v-pills { display:flex; gap:5px; flex-wrap:wrap }
+.v-pill { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:12.5px; background:var(--surface2); border:1px solid var(--border); font-family:var(--mono); white-space:nowrap }
+.v-pill .vn { color:var(--text2); font-size:9.5px; text-transform:uppercase; font-family:var(--sans); font-weight:600 }
+.v-pill .vv { color:var(--text); font-weight:600 }
+.v-pill .arr { font-weight:800; font-size:11px }
+.arr.up { color:var(--red) } .arr.down { color:var(--orange) } .arr.flat { color:var(--text3) }
+.risk-badge { display:inline-block; padding:3px 10px; border-radius:10px; font-size:12px; font-weight:700; letter-spacing:.3px }
+.risk-low { background:#E3F4E8; color:#1B7A3D } .risk-med { background:#FFF3D6; color:#9A6B00 }
+.risk-high { background:#FFE6CC; color:#B4540A } .risk-crit { background:#FBE0E0; color:#B11212 }
+.risk-none { background:#EEE; color:#999; font-weight:500 }
+.alerts-scroll { max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:10px }
+.alert-item { padding:14px 16px; border-radius:var(--radius-sm); animation:slideIn .3s ease both }
+.alert-item.critical { background:var(--red-dim); border:1px solid rgba(220,38,38,.14) }
+.alert-item.warning { background:var(--orange-dim); border:1px solid rgba(217,119,6,.14) }
+.al-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px }
+.al-pid { font-family:var(--mono); font-size:12.5px; color:var(--accent); font-weight:600 }
+.al-meta { font-size:12px; color:var(--text2); margin-left:8px }
+.al-reason { font-size:13px; color:var(--text); margin-top:5px }
+.al-conditions { font-size:11px; color:var(--text2); margin-top:8px }
+.empty-state { text-align:center; padding:50px 20px; color:var(--text3); font-size:14px }
+.empty-state .big { font-size:28px; margin-bottom:10px }
+
+.agent-suite-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px }
+.suite-card { border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 18px; border-left-width:3px }
+.suite-name { font-weight:700; font-size:15.5px; display:flex; align-items:center; gap:8px }
+.suite-for { font-size:12px; color:var(--text2); font-style:italic; margin:3px 0 8px }
+.suite-desc { font-size:12.5px; color:var(--text2); line-height:1.55 }
+
+.modal-bg { position:fixed; inset:0; background:rgba(241,245,249,.88); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:1000 }
+.modal-bg.open { display:flex }
+.modal-box { background:var(--surface); border:1px solid var(--border); border-radius:18px; width:700px; max-height:85vh; overflow-y:auto; padding:32px; animation:modalIn .25s ease; box-shadow:0 24px 80px rgba(0,0,0,.12) }
+.m-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px }
+.m-title { font-size:20px; font-weight:700 }
+.m-pid { font-family:var(--mono); font-size:12px; color:var(--accent); margin-top:5px; word-break:break-all }
+.m-close { background:var(--surface2); border:1px solid var(--border); color:var(--text2); border-radius:var(--radius-sm); padding:8px 16px; cursor:pointer; font-size:13px; font-family:var(--sans) }
+.m-close:hover { background:var(--surface3); color:var(--text) }
+.m-section { margin-bottom:24px }
+.m-sec-title { font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:14px }
+.vitals-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+.vcard { padding:16px; border-radius:var(--radius-sm); background:var(--surface2); border:1px solid var(--border); text-align:center }
+.vcard-name { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px }
+.vcard-val { font-family:var(--mono); font-size:28px; font-weight:700; color:var(--text) }
+.vcard-unit { font-size:10px; color:var(--text3); margin-top:2px }
+.vcard-trend { font-size:11px; margin-top:8px }
+.tags { display:flex; flex-wrap:wrap; gap:7px }
+.footer { margin-top:36px; text-align:center; padding:18px; color:var(--text3); font-size:12px; letter-spacing:.4px }
+
+body.role-provider [data-role="admin"] { display:none !important }
+body.role-admin [data-role="provider"] { display:none !important }
+/* Executive: hide the provider/admin Overview panel - exec metrics live in the Command Center */
+body.role-executive #sec-overview { display:none !important }
+body.role-executive .nav-link[data-sec="sec-overview"] { display:none !important }
+body.role-executive [data-role="provider"] { display:none !important }
+body.role-executive [data-role="admin"] { display:none !important }
+body.role-executive [data-role="provider,admin"] { display:none !important }
+body:not(.role-executive) [data-role="executive"] { display:none !important }
+.exec-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:18px }
+.exec-card { background:var(--surface); border:1px solid var(--border); border-left-width:5px; border-radius:var(--radius); padding:22px 24px; box-shadow:var(--shadow) }
+.exec-card .ec-label { font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--text2); font-weight:700; margin-bottom:10px }
+.exec-card .ec-val { font-size:38px; font-weight:800; line-height:1; font-family:var(--sans) }
+.exec-card .ec-sub { font-size:12.5px; color:var(--text2); margin-top:9px; line-height:1.4 }
+.exec-card.ec-red { border-left-color:#D32F2F } .exec-card.ec-red .ec-val { color:#D32F2F }
+.exec-card.ec-orange { border-left-color:#E8651E } .exec-card.ec-orange .ec-val { color:#E8651E }
+.exec-card.ec-green { border-left-color:#2E8B57 } .exec-card.ec-green .ec-val { color:#2E8B57 }
+.exec-card.ec-blue { border-left-color:#1F6FC4 } .exec-card.ec-blue .ec-val { color:#1F6FC4 }
+.exec-card.ec-purple { border-left-color:#6A3FB5 } .exec-card.ec-purple .ec-val { color:#6A3FB5 }
+.exec-dist { display:flex; gap:8px; margin-top:12px }
+.exec-dist .seg { height:10px; border-radius:5px }
+.exec-note { font-size:11.5px; color:var(--text3); font-style:italic; margin-top:6px; line-height:1.5 }
+
+.pq-list { display:flex; flex-direction:column; gap:10px }
+.pq-item { display:flex; align-items:center; gap:14px; padding:14px 16px; border:1px solid var(--border); border-left-width:4px; border-radius:var(--radius-sm); background:var(--surface); cursor:pointer; transition:background .12s }
+.pq-item:hover { background:var(--surface2) }
+.pq-item.tier-1 { border-left-color:#DC2626 }
+.pq-item.tier-2 { border-left-color:#D97706 }
+.pq-item.tier-3 { border-left-color:#CA8A04 }
+.pq-rank { font-family:var(--mono); font-size:20px; font-weight:700; color:var(--text3); min-width:30px; text-align:center }
+.pq-main { flex:1 }
+.pq-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px }
+.pq-pid { font-family:var(--mono); font-size:13px; color:var(--accent); font-weight:600 }
+.pq-meta { font-size:12px; color:var(--text2) }
+.pq-tier { font-size:11px; font-weight:700; padding:3px 11px; border-radius:16px; letter-spacing:.4px }
+.pq-tier.tier-1 { background:#FBE0E0; color:#B11212 }
+.pq-tier.tier-2 { background:#FFE6CC; color:#B4540A }
+.pq-tier.tier-3 { background:#FFF3D6; color:#9A6B00 }
+.pq-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px }
+.pq-tag { font-size:11.5px; padding:3px 10px; border-radius:14px; font-weight:600 }
+.pq-acute { background:var(--red-dim); color:var(--red) }
+.pq-risk { background:var(--purple-dim); color:var(--purple) }
+.pq-action { font-size:13px; color:var(--text); font-weight:500 }
+.rf-row { margin-bottom:14px }
+.rf-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px }
+.rf-name { font-size:13px; font-weight:600; color:var(--text) }
+.rf-vals { font-size:12px; color:var(--text2); font-family:var(--mono) }
+.rf-vals b { color:var(--purple); font-weight:700 }
+.rf-bar { height:10px; background:var(--surface3); border-radius:6px; overflow:hidden; position:relative }
+.rf-fill { height:100%; border-radius:6px; background:var(--purple) }
+.rf-avg { position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--text2) }
+.rf-above { color:var(--red); font-weight:700 }
+.fin-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px }
+.fin-card { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 18px }
+.fin-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:.8px; font-weight:600; margin-bottom:6px }
+.fin-val { font-family:var(--mono); font-size:28px; font-weight:700; line-height:1 }
+.fin-sub { font-size:11px; color:var(--text2); margin-top:6px }
+.fin-note { font-size:11.5px; color:var(--text3); margin-top:14px; font-style:italic; line-height:1.5 }
+.rel-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+.rel-card { background:var(--surface2); border:1px solid var(--border); border-left-width:4px; border-radius:var(--radius-sm); padding:15px 17px }
+.rel-card.sla-ok { border-left-color:#16A34A }
+.rel-card.sla-lag { border-left-color:#D97706 }
+.rel-card.sla-stale { border-left-color:#94A3B8 }
+.rel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px }
+.rel-name { font-size:14px; font-weight:700; color:var(--text) }
+.rel-dot { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.3px }
+.rel-dot .d { width:9px; height:9px; border-radius:50% }
+.rel-dot.sla-ok { color:#16A34A } .rel-dot.sla-ok .d { background:#16A34A; box-shadow:0 0 0 3px rgba(22,163,74,.15) }
+.rel-dot.sla-lag { color:#B4540A } .rel-dot.sla-lag .d { background:#D97706; box-shadow:0 0 0 3px rgba(217,119,6,.15) }
+.rel-dot.sla-stale { color:#64748B } .rel-dot.sla-stale .d { background:#94A3B8 }
+.rel-metrics { display:flex; gap:18px }
+.rel-metric { flex:1 }
+.rel-m-val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--text); line-height:1 }
+.rel-m-lbl { font-size:10.5px; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; margin-top:4px }
+.rel-method { font-size:11.5px; color:var(--text3); margin-top:10px; font-family:var(--mono) }
+.dlq-top { display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap }
+.dlq-stat { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 18px; min-width:130px }
+.dlq-stat .v { font-family:var(--mono); font-size:26px; font-weight:700; line-height:1 }
+.dlq-stat .l { font-size:10.5px; color:var(--text2); text-transform:uppercase; letter-spacing:.6px; margin-top:5px }
+.dlq-break { margin-bottom:16px }
+.dlq-break h4 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--text2); margin:0 0 8px }
+.dlq-brow { display:flex; align-items:center; gap:10px; margin-bottom:6px }
+.dlq-btag { font-family:var(--mono); font-size:12px; color:var(--text); min-width:150px; font-weight:600 }
+.dlq-bbar { flex:1; height:18px; background:var(--surface3); border-radius:5px; overflow:hidden }
+.dlq-bfill { height:100%; background:linear-gradient(90deg,var(--orange),#F59E0B); border-radius:5px }
+.dlq-bct { font-family:var(--mono); font-size:12px; color:var(--text2); min-width:40px; text-align:right }
+.dlq-recent h4 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--text2); margin:0 0 8px }
+.dlq-err { font-family:var(--mono); font-size:12px; padding:9px 12px; background:var(--red-dim); border-left:3px solid var(--red); border-radius:4px; margin-bottom:6px; color:var(--text) }
+.dlq-err .meta { color:var(--text3); font-size:11px; margin-top:3px }
+
+@media (max-width:1100px) {
+  .agents-grid { grid-template-columns:1fr }
+  .stats-row { grid-template-columns:repeat(2,1fr) }
+  .src-grid { grid-template-columns:1fr }
+  .main-grid { grid-template-columns:1fr }
+  .agent-suite-grid { grid-template-columns:1fr }
+  .vitals-grid { grid-template-columns:repeat(2,1fr) }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="header fade-up">
+    <div class="logo-area">
+      <div class="logo-mark">⚕</div>
+      <div>
+        <div class="logo-text">HealthStream <span>v2</span></div>
+        <div class="logo-sub">Real-Time Healthcare Decision Intelligence</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="role-pill" id="rolePill" style="display:none"></div>
+      <div class="sys-badge unknown" id="sysBadge"><span class="dot"></span> Connecting</div>
+      <div class="clock" id="clock"></div>
+      <button class="logout-btn" id="logoutBtn" onclick="logout()" style="display:none">Logout</button>
+    </div>
+  </header>
+
+  <nav class="navbar fade-up" id="navbar">
+    <a class="nav-link active" href="#sec-assistants" data-sec="sec-assistants">🤖 AI Assistants</a>
+    <a class="nav-link" href="#sec-overview" data-sec="sec-overview">📊 Overview</a>
+    <a class="nav-link" href="#sec-patients" data-sec="sec-patients" data-role="provider">👥 Patients</a>
+    <a class="nav-link" href="#sec-finance" data-sec="sec-finance" data-role="provider">💰 Financial</a>
+    <a class="nav-link" href="#sec-pipeline" data-sec="sec-pipeline" data-role="admin">🔗 Pipeline</a>
+    <a class="nav-link" href="#sec-agents" data-sec="sec-agents">⚙️ Agent Suite</a>
+    <a class="nav-link" href="#sec-priority" data-sec="sec-priority" data-role="provider">🚨 Action Queue</a>
+    <a class="nav-link" href="#sec-executive" data-sec="sec-executive" data-role="executive">📊 Command Center</a>
+  </nav>
+
+  <!-- ═══ TWO AGENTS SIDE BY SIDE ═══ -->
+  <section class="section" id="sec-assistants">
+    <div class="agents-grid">
+
+      <!-- LEFT: role-aware conversational agent -->
+      <div class="agent-panel clinical fade-up d1" id="agentLeft">
+        <div class="agent-phead">
+          <div class="agent-picon" id="leftIcon">🩺</div>
+          <div>
+            <div class="agent-pname" id="leftName">Clinical Assistant</div>
+            <div class="agent-ptag" id="leftTag">Patients, vitals &amp; risk</div>
+          </div>
+          <button class="agent-collapse" onclick="toggleAgent('agentLeft')" aria-label="Collapse"><span class="chev">⌃</span></button>
+        </div>
+        <div class="agent-body">
+          <div class="chat-suggestions" id="chatSugs"></div>
+          <div class="chat-msgs" id="chatMsgs"></div>
+          <div class="chat-input-row">
+            <input class="chat-input" id="chatIn" placeholder="Ask about a patient..." onkeydown="if(event.key==='Enter')sendMsg()">
+            <button class="chat-send" id="chatBtn" onclick="sendMsg()">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: analytics agent (both roles) -->
+      <div class="agent-panel analytics fade-up d2" id="agentRight">
+        <div class="agent-phead">
+          <div class="agent-picon">❄️</div>
+          <div>
+            <div class="agent-pname">Analytics Assistant</div>
+            <div class="agent-ptag">English → Snowflake SQL</div>
+          </div>
+          <span class="agent-live"><span class="dot"></span> Cortex</span>
+          <button class="agent-collapse" onclick="toggleAgent('agentRight')" aria-label="Collapse"><span class="chev">⌃</span></button>
+        </div>
+        <div class="agent-body">
+          <div class="chat-suggestions" id="aSugs"></div>
+          <div class="chat-msgs" id="aMsgs"></div>
+          <div class="chat-input-row">
+            <input class="chat-input" id="aIn" placeholder="Ask the lakehouse..." onkeydown="if(event.key==='Enter')sendAnalytics()">
+            <button class="chat-send" id="aBtn" onclick="sendAnalytics()">Ask</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══ OVERVIEW ═══ -->
+  <section class="section" id="sec-overview">
+    <div class="section-head"><span class="sh-ic">📊</span><h2>Overview</h2><span class="sh-sub">live system metrics</span></div>
+    <div class="stats-row">
+      <div class="stat-card fade-up d1" data-role="provider,admin">
+        <div class="stat-label">Patients Tracked</div>
+        <div class="stat-val" id="sPatients" style="color:var(--accent)">—</div>
+        <div class="stat-sub">materialized in Redis</div>
+      </div>
+      <div class="stat-card fade-up d2" data-role="provider">
+        <div class="stat-label">Active Alerts</div>
+        <div class="stat-val" id="sAlerts" style="color:var(--green)">0</div>
+        <div class="stat-sub">flagged for attention</div>
+      </div>
+      <div class="stat-card fade-up d3" data-role="provider">
+        <div class="stat-label">Critical Risk</div>
+        <div class="stat-val" id="sCrit" style="color:var(--purple)">—</div>
+        <div class="stat-sub">Snowflake ML readmission</div>
+      </div>
+      <div class="stat-card fade-up d4" data-role="provider">
+        <div class="stat-label">Risk Scored</div>
+        <div class="stat-val" id="sScored" style="color:var(--blue)">—</div>
+        <div class="stat-sub">patients with a model score</div>
+      </div>
+      <div class="stat-card fade-up d2" data-role="admin">
+        <div class="stat-label">Vitals Processed</div>
+        <div class="stat-val" id="sVitals" style="color:var(--blue)">—</div>
+        <div class="stat-sub">Source A · CSV Lab Export</div>
+      </div>
+      <div class="stat-card fade-up d3" data-role="admin">
+        <div class="stat-label">Conditions Synced</div>
+        <div class="stat-val" id="sConditions" style="color:var(--purple)">—</div>
+        <div class="stat-sub">Source B · PostgreSQL EHR</div>
+      </div>
+      <div class="stat-card fade-up d4" data-role="admin">
+        <div class="stat-label">DLQ Messages</div>
+        <div class="stat-val" id="sDLQ" style="color:var(--orange)">—</div>
+        <div class="stat-sub">errors quarantined</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FINANCIAL IMPACT (provider) ═══ -->
+  <section class="section" id="sec-finance" data-role="provider">
+    <div class="section-head"><span class="sh-ic">💰</span><h2>Financial Impact</h2><span class="sh-sub">readmission penalty exposure from ML risk</span></div>
+    <div class="card fade-up">
+      <div class="card-title"><span class="ic">💰</span> Estimated Readmission Cost Exposure</div>
+      <div class="fin-grid">
+        <div class="fin-card">
+          <div class="fin-label">At-Risk Patients</div>
+          <div class="fin-val" id="finCount" style="color:var(--accent)">—</div>
+          <div class="fin-sub">HIGH + CRITICAL readmission risk</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-label">Penalty Exposure</div>
+          <div class="fin-val" id="finExposure" style="color:var(--red)">—</div>
+          <div class="fin-sub">at ~$15K per avoidable readmission</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-label">Avoidable Cost</div>
+          <div class="fin-val" id="finAvoidable" style="color:var(--green)">—</div>
+          <div class="fin-sub">~25% preventable via early intervention</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-label">Medicare Penalty Risk</div>
+          <div class="fin-val" style="color:var(--orange)">up to 3%</div>
+          <div class="fin-sub">CMS HRRP reimbursement reduction</div>
+        </div>
+      </div>
+      <div class="fin-note">Patient counts are live from the Snowflake ML model. Dollar figures apply published industry rates (CMS / AHRQ) — illustrative of the methodology, not actual claims data.</div>
+    </div>
+  </section>
+
+  <!-- ═══ PATIENTS (provider) ═══ -->
+  <section class="section" id="sec-patients" data-role="provider">
+    <div class="section-head"><span class="sh-ic">👥</span><h2>Patient Registry</h2><span class="sh-sub">live vitals + Snowflake risk scores</span></div>
+    <div class="main-grid">
+      <div class="card fade-up">
+        <div class="card-title"><span class="ic">👥</span> Patients <span id="ptCountLbl" style="color:var(--accent);margin-left:4px"></span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Patient ID</th><th>Age</th><th>Sex</th><th>Current Vitals</th><th>Cond.</th><th>Risk</th><th>Last Update</th></tr></thead>
+            <tbody id="ptBody"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">Loading patient data...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card fade-up">
+        <div class="card-title"><span class="ic">⚡</span> Alerts <span id="alCountLbl" style="color:var(--red);margin-left:4px"></span></div>
+        <div class="alerts-scroll" id="alList"><div class="empty-state">Loading alerts...</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PIPELINE (admin) ═══ -->
+  <section class="section" id="sec-pipeline" data-role="admin">
+    <div class="section-head"><span class="sh-ic">🔗</span><h2>Pipeline</h2><span class="sh-sub">3 sources · Kafka · ksqlDB · Redis · Snowflake</span></div>
+    <div class="card fade-up" style="margin-bottom:14px">
+      <div class="card-title"><span class="ic">🛡️</span> Data Reliability <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3);margin-left:6px">— freshness & SLA per source</span></div>
+      <div class="rel-grid" id="relGrid">
+        <div class="empty-state">Checking source health...</div>
+      </div>
+      <div class="fin-note">SLA target: data seen within 60s = on-track (green), 60s–5min = lagging (amber), no recent data = stale/idle (gray). Freshness computed live from each source's last message timestamp.</div>
+    </div>
+    <div class="card fade-up" style="margin-bottom:14px">
+      <div class="card-title"><span class="ic">📡</span> Data Integration Sources — 3 Methods</div>
+      <div class="src-grid" id="srcGrid">
+        <div class="src-card"><div style="padding:26px;text-align:center;color:var(--text3)">Loading...</div></div>
+        <div class="src-card"><div style="padding:26px;text-align:center;color:var(--text3)">Loading...</div></div>
+        <div class="src-card"><div style="padding:26px;text-align:center;color:var(--text3)">Loading...</div></div>
+      </div>
+    </div>
+    <div class="card fade-up">
+      <div class="card-title"><span class="ic" style="font-family:var(--mono)">///</span> Pipeline Architecture</div>
+      <div class="arch-flow">
+        <div class="arch-node"><div class="arch-lbl" style="color:var(--accent)">Lab Systems</div><div class="arch-sub">CSV · Python</div></div>
+        <div class="arch-node"><div class="arch-lbl" style="color:var(--blue)">EHR</div><div class="arch-sub">PostgreSQL · JDBC</div></div>
+        <div class="arch-node"><div class="arch-lbl" style="color:var(--purple)">Pharmacy</div><div class="arch-sub">MySQL · Debezium</div></div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-node arch-kafka"><div class="arch-lbl">Apache Kafka</div><div class="arch-sub">3 Brokers · Avro</div></div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-node"><div class="arch-lbl" style="color:var(--orange)">ksqlDB</div><div class="arch-sub">Stream Processing</div></div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-node"><div class="arch-lbl" style="color:var(--red)">Redis</div><div class="arch-sub">Context · 24h TTL</div></div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-node" style="background:linear-gradient(135deg,var(--purple-dim),var(--surface2));border-color:rgba(124,58,237,.25)"><div class="arch-lbl" style="color:var(--purple)">Snowflake + AI</div><div class="arch-sub">Cortex ML · Agents</div></div>
+      </div>
+    </div>
+    <div class="card fade-up">
+      <div class="card-title"><span class="ic">🧪</span> Data Quality — Dead-Letter Queue <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3);margin-left:6px">— bad records caught before they corrupt the lakehouse</span></div>
+      <div id="dlqPanel"><div class="empty-state">Loading error analysis...</div></div>
+      <div class="fin-note">Records failing validation are quarantined to a dead-letter queue instead of silently entering the pipeline. Each is tagged with the failure reason, source, and intended topic for triage.</div>
+    </div>
+  </section>
+
+  <!-- ═══ AGENT SUITE ═══ -->
+    <section class="section" id="sec-executive" data-role="executive">
+    <div class="section-head"><span class="sh-ic">📊</span><h2>Hospital Command Center</h2><span class="sh-sub">leadership view, live from Snowflake, no query needed</span></div>
+    <div class="exec-grid" id="execGrid">
+      <div class="empty-state">Loading leadership metrics...</div>
+    </div>
+    <div class="card fade-up" id="execDistCard" style="display:none">
+      <div class="card-title"><span class="ic">📊</span> Population Risk Distribution</div>
+      <div id="execDist"></div>
+    </div>
+  </section>
+
+  <section class="section" id="sec-agents">
+    <div class="section-head"><span class="sh-ic">⚙️</span><h2>Agent Suite</h2><span class="sh-sub">4 specialized GPT-4o agents</span></div>
+    <div class="card fade-up">
+      <div class="agent-suite-grid">
+        <div class="suite-card" style="border-left-color:var(--accent)">
+          <div class="suite-head" style="display:flex;justify-content:space-between;align-items:center">
+            <div class="suite-name">🩺 Clinical Assistant</div><span class="badge b-green">In Dashboard</span>
+          </div>
+          <div class="suite-for">For doctors</div>
+          <div class="suite-desc">Answers questions about any patient — vitals, conditions, medications, and who needs attention right now. <strong>Live above, left.</strong></div>
+        </div>
+        <div class="suite-card" style="border-left-color:var(--purple)">
+          <div class="suite-head" style="display:flex;justify-content:space-between;align-items:center">
+            <div class="suite-name">❄️ Analytics Assistant</div><span class="badge b-purple">In Dashboard</span>
+          </div>
+          <div class="suite-for">For analysts &amp; leadership</div>
+          <div class="suite-desc">Turns plain-English questions into Snowflake queries — readmission drivers, risk by age, ML risk scores. <strong>Live above, right.</strong></div>
+        </div>
+        <div class="suite-card" style="border-left-color:var(--blue)">
+          <div class="suite-head" style="display:flex;justify-content:space-between;align-items:center">
+            <div class="suite-name">🔌 Data Onboarding Agent</div><span class="badge b-blue">Automation</span>
+          </div>
+          <div class="suite-for">For data engineers</div>
+          <div class="suite-desc">Connects a new hospital data source in minutes — recommends the method, generates the connector, and deploys it with a human approval step.</div>
+        </div>
+        <div class="suite-card" style="border-left-color:var(--orange)">
+          <div class="suite-head" style="display:flex;justify-content:space-between;align-items:center">
+            <div class="suite-name">🛡️ Data Quality Monitor</div><span class="badge b-orange">Automation</span>
+          </div>
+          <div class="suite-for">For data engineers</div>
+          <div class="suite-desc">Watches the pipeline for bad data, classifies error patterns, diagnoses the root cause, and produces alert reports automatically.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ ACTION PRIORITY QUEUE (provider) ═══ -->
+  <section class="section" id="sec-priority" data-role="provider">
+    <div class="section-head"><span class="sh-ic">🚨</span><h2>Action Priority Queue</h2><span class="sh-sub">acute alerts × ML readmission risk → who to see first</span></div>
+    <div class="card fade-up">
+      <div class="card-title"><span class="ic">🚨</span> Prioritized patients <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3);margin-left:6px">— fuses live vitals with Snowflake risk</span></div>
+      <div class="pq-list" id="pqList"><div class="empty-state">Computing priorities...</div></div>
+    </div>
+  </section>
+
+  <div class="footer">HealthStream v2 — Real-Time Operations · Snowflake Lakehouse · Cortex ML · 4 AI Agents · Closed-Loop Risk Scoring</div>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="m-head"><div><div class="m-title" id="mTitle">Patient Detail</div><div class="m-pid" id="mPid"></div></div><button class="m-close" onclick="closeModal()">✕ Close</button></div>
+    <div id="mDemo" style="margin-bottom:18px"></div>
+    <div class="m-section" id="mRiskSec" style="display:none">
+      <div class="m-sec-title">Why this risk? <span id="mRiskBadge"></span></div>
+      <div id="mRiskFactors"></div>
+    </div>
+    <div class="m-section"><div class="m-sec-title">Current Vitals</div><div class="vitals-grid" id="mVitals"></div></div>
+    <div class="m-section" id="mCondSec" style="display:none"><div class="m-sec-title">Conditions / Diagnoses <span id="mCondCount" style="color:var(--accent)"></span></div><div class="tags" id="mConds"></div></div>
+    <div class="m-section" id="mMedSec" style="display:none"><div class="m-sec-title">Medications <span id="mMedCount" style="color:var(--blue)"></span></div><div class="tags" id="mMeds"></div></div>
+    <div class="m-section" id="mHistSec" style="display:none"><div class="m-sec-title">Vitals History (Last 10 Readings)</div><div id="mHist" style="font-family:var(--mono);font-size:11px;color:var(--text2)"></div></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let CURRENT_ROLE = null;
+
+const CHIPS_PROVIDER = [
+  ["Which patients need immediate attention?", "Who needs attention?"],
+  ["Give me a summary of all patients and their conditions", "Patient summary"],
+  ["Show me patients with critical vitals", "Critical vitals"],
+];
+const CHIPS_ADMIN = [
+  ["What is the current pipeline health?", "Pipeline health"],
+  ["Analyze the dead letter queue for error patterns", "Analyze errors"],
+  ["What would happen if the PostgreSQL source went down?", "Source impact"],
+];
+const CHIPS_ANALYTICS = [
+  ["Which conditions drive the most 30-day readmissions?", "Top conditions"],
+  ["What is the readmission risk by age group?", "Risk by age"],
+  ["How many patients are in each risk level?", "Risk levels"],
+];
+
+function toggleAgent(id) { document.getElementById(id).classList.toggle('collapsed'); }
+
+function setupScrollSpy() {
+  const links = document.querySelectorAll('.nav-link'); const map = {};
+  links.forEach(l => map[l.getAttribute('data-sec')] = l);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); const lk = map[e.target.id]; if (lk) lk.classList.add('active'); } });
+  }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+  document.querySelectorAll('.section').forEach(s => obs.observe(s));
+}
+
+async function initRole() {
+  const r = await fetch(API + '/me').then(x => x.json()).catch(() => ({role:null}));
+  if (!r.role) { window.location.href = '/login'; return; }
+  CURRENT_ROLE = r.role;
+  document.body.classList.add('role-' + r.role);
+  const pill = document.getElementById('rolePill');
+  pill.className = 'role-pill ' + r.role;
+  pill.textContent = r.role === 'provider' ? '👨‍⚕️ Provider' : (r.role === 'executive' ? '📊 Executive' : '⚙️ Admin');
+  pill.style.display = 'inline-flex';
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+
+  // Left agent adapts to role
+  if (r.role === 'admin') {
+    document.getElementById('leftIcon').textContent = '🛠️';
+    document.getElementById('leftName').textContent = 'Operations Assistant';
+    document.getElementById('leftTag').textContent = 'Pipeline health & data flow';
+    document.getElementById('chatIn').placeholder = 'Ask about pipeline health, errors, connectors...';
+  } else {
+    document.getElementById('leftIcon').textContent = '🩺';
+    document.getElementById('leftName').textContent = 'Clinical Assistant';
+    document.getElementById('leftTag').textContent = 'Patients, vitals & risk';
+    document.getElementById('chatIn').placeholder = 'Ask about a patient, vitals, alerts...';
+  }
+
+  const chips = r.role === 'provider' ? CHIPS_PROVIDER : CHIPS_ADMIN;
+  document.getElementById('chatSugs').innerHTML = chips.map(([q, label]) => `<button class="chat-sug" onclick="askQ('${q.replace(/'/g, "\\'")}')">${label}</button>`).join('');
+  document.getElementById('aSugs').innerHTML = CHIPS_ANALYTICS.map(([q, label]) => `<button class="chat-sug" onclick="askAnalytics('${q.replace(/'/g, "\\'")}')">${label}</button>`).join('');
+
+  setupScrollSpy();
+}
+
+async function logout() { await fetch(API + '/logout', { method: 'POST' }); window.location.href = '/login'; }
+function tickClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour12:true,hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+setInterval(tickClock, 1000); tickClock();
+
+async function api(path) { try { const r = await fetch(API + path); return await r.json(); } catch(e) { return null; } }
+function n(v) { return v != null ? Number(v).toLocaleString() : '—'; }
+function short(id) { return id ? id.substring(0,8) + '…' : '—'; }
+function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const VNAMES = { heart_rate:'HR', systolic_bp:'SBP', diastolic_bp:'DBP', oxygen_saturation:'SpO₂', temperature:'Temp', respiratory_rate:'RR', bmi:'BMI' };
+function vn(k) { return VNAMES[k] || k.replace(/_/g,' ').substring(0,8); }
+function trendArrow(dir) { if (dir==='rising') return '<span class="arr up">▲</span>'; if (dir==='falling') return '<span class="arr down">▼</span>'; return '<span class="arr flat">→</span>'; }
+function badgeClass(s) { if (s==='healthy'||s==='RUNNING') return 'b-green'; if (s==='stale'||s==='warning') return 'b-orange'; if (s==='critical'||s==='FAILED') return 'b-red'; return 'b-muted'; }
+
+async function loadDLQ() {
+  const d = await api('/dlq'); if (!d) return;
+  const el = document.getElementById('sDLQ'); if (el) { el.textContent = n(d.total||0); el.style.color = (d.total||0)>0?'var(--orange)':'var(--green)'; }
+  const panel = document.getElementById('dlqPanel'); if (!panel) return;
+  const total = d.total||0;
+  if (total === 0) { panel.innerHTML = '<div class="empty-state"><div class="big">OK</div>No quarantined records — all data passing validation</div>'; return; }
+  const cats = d.categories||{}, srcs = d.by_source||{}, topics = d.by_topic||{};
+  const catCount = Object.keys(cats).length;
+  const topSrc = Object.keys(srcs).length;
+  function bars(obj) {
+    const max = Math.max(...Object.values(obj), 1);
+    return Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v]) =>
+      `<div class="dlq-brow"><span class="dlq-btag">${esc(k)}</span><div class="dlq-bbar"><div class="dlq-bfill" style="width:${(v/max*100)}%"></div></div><span class="dlq-bct">${n(v)}</span></div>`
+    ).join('');
+  }
+  const recent = (d.recent||[]).slice().reverse().slice(0,6).map(e => {
+    const t = e.failed_at ? new Date(e.failed_at).toLocaleTimeString() : '';
+    return `<div class="dlq-err">${esc(e.error_reason||'unknown error')}<div class="meta">${esc(e.source_system||'?')} → ${esc(e.topic_intended||'?')} · ${t}</div></div>`;
+  }).join('');
+  panel.innerHTML = `
+    <div class="dlq-top">
+      <div class="dlq-stat"><div class="v" style="color:var(--orange)">${n(total)}</div><div class="l">Quarantined</div></div>
+      <div class="dlq-stat"><div class="v" style="color:var(--text)">${catCount}</div><div class="l">Error Type${catCount===1?'':'s'}</div></div>
+      <div class="dlq-stat"><div class="v" style="color:var(--text)">${topSrc}</div><div class="l">Source${topSrc===1?'':'s'} Affected</div></div>
+    </div>
+    <div class="dlq-break"><h4>By Error Type</h4>${bars(cats)}</div>
+    <div class="dlq-break"><h4>By Source</h4>${bars(srcs)}</div>
+    <div class="dlq-recent"><h4>Recent Failures</h4>${recent}</div>
+  `;
+}
+async function loadHealth() {
+  const d = await api('/health'); if (!d) return;
+  const b = document.getElementById('sysBadge'); const st = d.status||'unknown';
+  b.className = 'sys-badge '+st; b.innerHTML = '<span class="dot"></span> '+st.charAt(0).toUpperCase()+st.slice(1);
+  document.getElementById('sPatients').textContent = n(d.patient_count);
+  const stats = d.stats||{};
+  const sv = document.getElementById('sVitals'); if (sv) sv.textContent = n(stats.vitals_processed);
+  const sc = document.getElementById('sConditions'); if (sc) sc.textContent = n(stats.conditions_processed);
+}
+async function loadPipeline() {
+  const d = await api('/pipeline'); if (!d) return;
+  const icons = { vitals:'[A]', conditions:'[B]', medications:'[C]' };
+  const g = document.getElementById('srcGrid'); if (!g) return;
+  g.innerHTML = (d.sources||[]).map(s => `<div class="src-card"><div class="src-head"><div class="src-name"><span class="em">${icons[s.icon]||'[~]'}</span> ${esc(s.label)}</div><span class="dot-s ${s.status}"></span></div><div class="src-method">${esc(s.method)}</div><div class="src-topic">→ ${esc(s.topic)}</div><div class="src-foot"><div><div class="src-count">${n(s.messages_processed)}</div><div class="src-count-label">messages</div></div><span class="badge ${badgeClass(s.status)}">${esc(s.status)}</span></div></div>`).join('');
+  renderReliability(d.sources||[]);
+}
+
+function renderReliability(sources) {
+  const g = document.getElementById('relGrid'); if (!g) return;
+  const now = Date.now();
+  function freshness(s) {
+    if (!s.last_seen) return { sla:'sla-stale', label:'IDLE', fresh:'no data', secs:null };
+    const seen = new Date(s.last_seen.endsWith('Z') ? s.last_seen : s.last_seen + 'Z').getTime();
+    let secs = Math.max(0, Math.round((now - seen) / 1000));
+    if (s.gap_seconds != null && s.gap_seconds < 5) secs = Math.round(s.gap_seconds);
+    let sla, label;
+    if (secs <= 60) { sla = 'sla-ok'; label = 'ON-TRACK'; }
+    else if (secs <= 300) { sla = 'sla-lag'; label = 'LAGGING'; }
+    else { sla = 'sla-stale'; label = 'STALE'; }
+    const fresh = secs < 1 ? 'just now' : secs < 60 ? secs + 's ago' : secs < 3600 ? Math.round(secs/60) + 'm ago' : Math.round(secs/3600) + 'h ago';
+    return { sla, label, fresh, secs };
+  }
+  g.innerHTML = sources.map(s => {
+    const f = freshness(s);
+    const lagDisplay = f.secs == null ? '—' : (f.secs < 60 ? f.secs + 's' : Math.round(f.secs/60) + 'm');
+    return `<div class="rel-card ${f.sla}">
+      <div class="rel-head">
+        <span class="rel-name">${esc(s.label)}</span>
+        <span class="rel-dot ${f.sla}"><span class="d"></span>${f.label}</span>
+      </div>
+      <div class="rel-metrics">
+        <div class="rel-metric"><div class="rel-m-val">${f.fresh}</div><div class="rel-m-lbl">Freshness</div></div>
+        <div class="rel-metric"><div class="rel-m-val">${lagDisplay}</div><div class="rel-m-lbl">Lag</div></div>
+        <div class="rel-metric"><div class="rel-m-val">${n(s.messages_processed)}</div><div class="rel-m-lbl">Messages</div></div>
+      </div>
+      <div class="rel-method">${esc(s.method)} → ${esc(s.topic)}</div>
+    </div>`;
+  }).join('');
+}
+async function loadPatients() {
+  const d = await api('/patients'); if (!d) return;
+  const lbl = document.getElementById('ptCountLbl'); if (lbl) lbl.textContent = `(${d.total})`;
+  const body = document.getElementById('ptBody'); if (!body) return;
+  let crit = 0, scored = 0, atRisk = 0;
+  (d.patients||[]).forEach(p => { if (p.risk && p.risk.risk_level) { scored++; if (p.risk.risk_level === 'CRITICAL') crit++; if (p.risk.risk_level === 'CRITICAL' || p.risk.risk_level === 'HIGH') atRisk++; } });
+  const sCrit = document.getElementById('sCrit'); if (sCrit) sCrit.textContent = crit;
+  const sScored = document.getElementById('sScored'); if (sScored) sScored.textContent = scored;
+  const COST = 15000;
+  const exposure = atRisk * COST;
+  const avoidable = Math.round(exposure * 0.25);
+  const fmtUSD = v => '$' + (v >= 1000 ? (v/1000).toFixed(v >= 10000 ? 0 : 1) + 'K' : v);
+  const fc = document.getElementById('finCount'); if (fc) fc.textContent = atRisk;
+  const fe = document.getElementById('finExposure'); if (fe) fe.textContent = fmtUSD(exposure);
+  const fa = document.getElementById('finAvoidable'); if (fa) fa.textContent = fmtUSD(avoidable);
+  if (!d.patients || d.patients.length === 0) { body.innerHTML = '<tr><td colspan="7" class="empty-state">No patients found in Redis yet.</td></tr>'; return; }
+  function riskBadge(risk) {
+    if (!risk || !risk.risk_level) return '<span class="risk-badge risk-none">-</span>';
+    const lvl = risk.risk_level; const pct = (risk.risk_pct!=null)?Number(risk.risk_pct).toFixed(0)+'%':'';
+    const cls = { LOW:'risk-low', MEDIUM:'risk-med', HIGH:'risk-high', CRITICAL:'risk-crit' }[lvl] || 'risk-none';
+    return `<span class="risk-badge ${cls}" title="Readmission risk: ${pct}">${lvl}</span>`;
+  }
+  body.innerHTML = d.patients.slice(0,50).map(p => {
+    const pills = Object.entries(p.vitals||{}).map(([k,v]) => `<span class="v-pill"><span class="vn">${vn(k)}</span> <span class="vv">${v.value!=null?Number(v.value).toFixed(1):'—'}</span> ${trendArrow(v.trend)}</span>`).join('');
+    const ts = p.last_updated ? new Date(p.last_updated).toLocaleTimeString() : '—';
+    return `<tr class="p-row" onclick="openPatient('${esc(p.patient_id)}')"><td class="pid">${short(p.patient_id)}</td><td>${esc(p.age)}</td><td>${esc(p.gender)}</td><td><div class="v-pills">${pills}</div></td><td>${p.condition_count}</td><td>${riskBadge(p.risk)}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${ts}</td></tr>`;
+  }).join('');
+}
+async function loadAlerts() {
+  const d = await api('/alerts'); if (!d) return;
+  const total = d.total||0;
+  const el = document.getElementById('sAlerts'); if (el) { el.textContent = total; el.style.color = total>0?'var(--red)':'var(--green)'; }
+  const lbl = document.getElementById('alCountLbl'); if (lbl) lbl.textContent = total>0?`(${total})`:'';
+  const list = document.getElementById('alList'); if (!list) return;
+  if (!d.patients || d.patients.length===0) { list.innerHTML = '<div class="empty-state"><div class="big">OK</div>All patients stable — no alerts</div>'; return; }
+  list.innerHTML = d.patients.slice(0,25).map((p,i) => `<div class="alert-item ${p.severity}" style="animation-delay:${i*40}ms"><div class="al-head"><div><span class="al-pid">${short(p.patient_id)}</span><span class="al-meta">${esc(p.age)}y ${esc(p.gender)}</span></div><span class="badge ${p.severity==='critical'?'b-red':'b-orange'}">${p.severity}</span></div>${p.reasons.map(r => `<div class="al-reason">${r.type==='critical'?'🔴':'🟡'} ${esc(r.msg)}</div>`).join('')}${p.conditions.length?`<div class="al-conditions">Conditions: ${p.conditions.slice(0,3).map(esc).join(', ')}</div>`:''}</div>`).join('');
+}
+
+async function openPatient(pid) {
+  const d = await api('/patients/' + encodeURIComponent(pid)); if (!d || d.error) return;
+  document.getElementById('mPid').textContent = d.patient_id;
+  document.getElementById('mDemo').innerHTML = `<span class="badge b-blue" style="margin-right:8px">Age: ${d.patient_age||'?'}</span><span class="badge b-blue">Gender: ${d.patient_gender||'?'}</span>`;
+  const vg = document.getElementById('mVitals'); const vitals = d.vitals||{};
+  vg.innerHTML = Object.entries(vitals).map(([name,vd]) => { const dir = vd.trend?.direction||'stable'; const pct = vd.trend?.pct_change?` (${Math.abs(vd.trend.pct_change).toFixed(1)}%)`:''; const tc = dir==='rising'?'var(--red)':dir==='falling'?'var(--orange)':'var(--text3)'; return `<div class="vcard"><div class="vcard-name">${name.replace(/_/g,' ')}</div><div class="vcard-val">${vd.value!=null?Number(vd.value).toFixed(1):'—'}</div><div class="vcard-unit">${esc(vd.units||'')}</div><div class="vcard-trend" style="color:${tc}">${trendArrow(dir)} ${dir}${pct}</div></div>`; }).join('');
+  const conds = d.conditions||[]; const cs = document.getElementById('mCondSec'); const ct = document.getElementById('mConds');
+  if (conds.length) { cs.style.display='block'; document.getElementById('mCondCount').textContent=`(${conds.length})`; ct.innerHTML = conds.map(c => { const nm = typeof c==='string'?c:c.name||JSON.stringify(c); return `<span class="badge b-muted">${esc(nm)}</span>`; }).join(''); } else cs.style.display='none';
+  const meds = d.medications||[]; const ms = document.getElementById('mMedSec'); const mt = document.getElementById('mMeds');
+  if (meds.length) { ms.style.display='block'; document.getElementById('mMedCount').textContent=`(${meds.length})`; mt.innerHTML = meds.map(m => { const nm = typeof m==='string'?m:m.name||JSON.stringify(m); return `<span class="badge b-blue">${esc(nm)}</span>`; }).join(''); } else ms.style.display='none';
+  const hist = d.vitals_history||{}; const hs = document.getElementById('mHistSec'); const hd = document.getElementById('mHist'); const hk = Object.keys(hist);
+  if (hk.length) { hs.style.display='block'; hd.innerHTML = hk.map(k => { const rd = hist[k]; const lab = k.replace('_history','').replace(/_/g,' '); const vals = rd.map(r => Number(r.value).toFixed(1)).join(' → '); return `<div style="margin-bottom:6px"><span style="color:var(--accent)">${lab}:</span> ${vals}</div>`; }).join(''); } else hs.style.display='none';
+  document.getElementById('modalBg').classList.add('open');
+  loadRiskExplain(pid);
+}
+
+async function loadRiskExplain(pid) {
+  const sec = document.getElementById('mRiskSec');
+  const badge = document.getElementById('mRiskBadge');
+  const box = document.getElementById('mRiskFactors');
+  sec.style.display = 'none';
+  const d = await api('/risk-explain/' + encodeURIComponent(pid));
+  if (!d || !d.available) return;
+  const lvlCls = { LOW:'risk-low', MEDIUM:'risk-med', HIGH:'risk-high', CRITICAL:'risk-crit' }[d.risk_level] || 'risk-none';
+  badge.innerHTML = `<span class="risk-badge ${lvlCls}" style="margin-left:6px">${d.risk_level} · ${Number(d.risk_pct).toFixed(0)}%</span>`;
+  box.innerHTML = d.factors.map(f => {
+    const above = f.value > f.avg;
+    const max = Math.max(f.value, f.avg) * 1.15 || 1;
+    const fillPct = Math.min(100, (f.value / max) * 100);
+    const avgPct = Math.min(100, (f.avg / max) * 100);
+    const unit = f.unit ? ' ' + f.unit : '';
+    return `<div class="rf-row">
+      <div class="rf-top">
+        <span class="rf-name">${esc(f.name)}</span>
+        <span class="rf-vals"><b>${f.value}${unit}</b> <span class="${above?'rf-above':''}">${above?'▲':''}</span> vs avg ${f.avg}${unit}</span>
+      </div>
+      <div class="rf-bar"><div class="rf-fill" style="width:${fillPct}%"></div><div class="rf-avg" style="left:${avgPct}%"></div></div>
+    </div>`;
+  }).join('');
+  sec.style.display = 'block';
+}
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+
+function askQ(text) { document.getElementById('chatIn').value = text; sendMsg(); }
+async function sendMsg() {
+  const el = document.getElementById('chatIn'); const msg = el.value.trim(); if (!msg) return; el.value = '';
+  const box = document.getElementById('chatMsgs');
+  box.innerHTML += `<div class="chat-msg user"><div class="chat-role">You</div><div class="chat-body">${esc(msg)}</div></div>`;
+  box.innerHTML += `<div class="typing-ind" id="typing">🤖 Analyzing...</div>`;
+  box.scrollTop = box.scrollHeight; const btn = document.getElementById('chatBtn'); btn.disabled = true;
+  try {
+    const res = await fetch(API + '/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg}) });
+    const data = await res.json(); const ti = document.getElementById('typing'); if (ti) ti.remove();
+    box.innerHTML += `<div class="chat-msg bot" style="animation:slideIn .3s ease"><div class="chat-role">Assistant</div><div class="chat-body">${fmtMd(data.response||data.error||'No response')}</div></div>`;
+  } catch(e) { const ti = document.getElementById('typing'); if (ti) ti.remove(); box.innerHTML += `<div class="chat-msg bot"><div class="chat-role">Error</div><div class="chat-body">Could not reach the API.</div></div>`; }
+  btn.disabled = false; box.scrollTop = box.scrollHeight;
+}
+function askAnalytics(text) { document.getElementById('aIn').value = text; sendAnalytics(); }
+async function sendAnalytics() {
+  const el = document.getElementById('aIn'); const msg = el.value.trim(); if (!msg) return; el.value = '';
+  const box = document.getElementById('aMsgs');
+  box.innerHTML += `<div class="chat-msg user"><div class="chat-role">You</div><div class="chat-body">${esc(msg)}</div></div>`;
+  box.innerHTML += `<div class="typing-ind" id="aTyping">❄️ Querying Snowflake...</div>`;
+  box.scrollTop = box.scrollHeight; const btn = document.getElementById('aBtn'); btn.disabled = true;
+  try {
+    const res = await fetch(API + '/analytics', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg}) });
+    const data = await res.json(); const ti = document.getElementById('aTyping'); if (ti) ti.remove();
+    box.innerHTML += `<div class="chat-msg bot" style="animation:slideIn .3s ease"><div class="chat-role">Analytics</div><div class="chat-body">${fmtMd(data.response||data.error||'No response')}</div></div>`;
+  } catch(e) { const ti = document.getElementById('aTyping'); if (ti) ti.remove(); box.innerHTML += `<div class="chat-msg bot"><div class="chat-role">Error</div><div class="chat-body">Could not reach the Analytics endpoint.</div></div>`; }
+  btn.disabled = false; box.scrollTop = box.scrollHeight;
+}
+function fmtMd(text) {
+  let t = esc(text);
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/`(.+?)`/g, '<code>$1</code>');
+  t = t.replace(/^### (.+)$/gm, '<div style="font-weight:700;margin:12px 0 5px">$1</div>');
+  t = t.replace(/^## (.+)$/gm, '<div style="font-weight:700;margin:14px 0 6px">$1</div>');
+  t = t.replace(/^- (.+)$/gm, '<div style="padding-left:16px;margin:3px 0">• $1</div>');
+  t = t.replace(/^\d+\. (.+)$/gm, (m) => `<div style="padding-left:16px;margin:3px 0">${m}</div>`);
+  return t;
+}
+async function loadPriority() {
+  const sec = document.getElementById('pqList'); if (!sec) return;
+  const [pd, ad] = await Promise.all([api('/patients'), api('/alerts')]);
+  const riskMap = {}, demo = {}, alertMap = {};
+  (pd && pd.patients || []).forEach(p => { demo[p.patient_id] = {age:p.age, gender:p.gender}; if (p.risk && p.risk.risk_level) riskMap[p.patient_id] = p.risk; });
+  (ad && ad.patients || []).forEach(p => { alertMap[p.patient_id] = p; });
+  const chronicScore = lvl => ({CRITICAL:3,HIGH:2,MEDIUM:1,LOW:0}[lvl] || 0);
+  const acuteScore = sev => (sev==='critical'?3:sev==='warning'?1:0);
+  const ids = new Set([...Object.keys(alertMap), ...Object.keys(riskMap).filter(id => chronicScore(riskMap[id].risk_level) >= 2)]);
+  const rows = [];
+  ids.forEach(id => {
+    const al = alertMap[id], rk = riskMap[id];
+    const aS = al ? acuteScore(al.severity) : 0;
+    const cS = rk ? chronicScore(rk.risk_level) : 0;
+    if (aS === 0 && cS < 2) return;
+    rows.push({ id, al, rk, aS, cS, combined: aS + cS });
+  });
+  rows.sort((a,b) => (b.combined - a.combined) || (b.aS - a.aS));
+  if (rows.length === 0) { sec.innerHTML = '<div class="empty-state"><div class="big">OK</div>No high-priority patients right now</div>'; return; }
+  sec.innerHTML = rows.slice(0,12).map((r,i) => {
+    let tier, tierCls;
+    if ((r.aS === 3 && r.cS >= 2) || r.combined >= 5) { tier = 'P1 · SEE NOW'; tierCls = 'tier-1'; }
+    else if (r.combined >= 3) { tier = 'P2 · URGENT'; tierCls = 'tier-2'; }
+    else { tier = 'P3 · ELEVATED'; tierCls = 'tier-3'; }
+    const tags = [];
+    if (r.al && r.al.reasons && r.al.reasons[0]) tags.push(`<span class="pq-tag pq-acute">⚡ ${esc(r.al.reasons[0].msg)}</span>`);
+    if (r.rk) tags.push(`<span class="pq-tag pq-risk">❄️ ${r.rk.risk_level} readmission risk</span>`);
+    let action;
+    if (r.aS === 3 && r.cS >= 2) action = 'Rapid response now + flag for discharge-planning review';
+    else if (r.aS === 3) action = 'Rapid response / bedside assessment now';
+    else if (r.aS === 1 && r.cS >= 2) action = 'Bedside check + start readmission-prevention plan';
+    else if (r.cS >= 2) action = 'Not acutely unstable — schedule discharge planning & follow-up';
+    else action = 'Monitor and reassess vitals';
+    const d = demo[r.id] || {};
+    return `<div class="pq-item ${tierCls}" onclick="openPatient('${esc(r.id)}')">
+      <div class="pq-rank">${i+1}</div>
+      <div class="pq-main">
+        <div class="pq-top"><span class="pq-pid">${short(r.id)}</span><span class="pq-meta">${esc(d.age||'?')}y ${esc(d.gender||'')}</span><span class="pq-tier ${tierCls}">${tier}</span></div>
+        <div class="pq-tags">${tags.join('')}</div>
+        <div class="pq-action">→ ${action}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadExecutive() {
+  const grid = document.getElementById('execGrid'); if (!grid) return;
+  const d = await api('/executive');
+  if (!d || !d.available) { grid.innerHTML = '<div class="empty-state">Executive metrics unavailable</div>'; return; }
+  const usd = v => '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v);
+  const shortDriver = (d.top_driver || '').replace(/\s*\(disorder\)/i,'').replace(/\s+TNM.*$/i,'');
+  grid.innerHTML = `
+    <div class="exec-card ec-red">
+      <div class="ec-label">30-Day Readmission Rate</div>
+      <div class="ec-val">${d.readmit_rate}%</div>
+      <div class="ec-sub">${n(d.readmitted)} of ${n(d.total_stays)} stays returned within 30 days</div>
+    </div>
+    <div class="exec-card ec-orange">
+      <div class="ec-label">Population At Risk</div>
+      <div class="ec-val">${n(d.at_risk)}</div>
+      <div class="ec-sub">HIGH + CRITICAL of ${n(d.scored)} scored patients (Snowflake ML)</div>
+    </div>
+    <div class="exec-card ec-red">
+      <div class="ec-label">Penalty Exposure</div>
+      <div class="ec-val">${usd(d.exposure)}</div>
+      <div class="ec-sub">at-risk patients x ~$15K per avoidable readmission</div>
+    </div>
+    <div class="exec-card ec-green">
+      <div class="ec-label">Avoidable Cost</div>
+      <div class="ec-val">${usd(d.avoidable)}</div>
+      <div class="ec-sub">~25% preventable with early intervention</div>
+    </div>
+    <div class="exec-card ec-purple">
+      <div class="ec-label">Top Risk Driver</div>
+      <div class="ec-val" style="font-size:22px">${esc(shortDriver || 'Not documented')}</div>
+      <div class="ec-sub">${n(d.top_driver_n)} readmissions, leading documented cause</div>
+    </div>
+    <div class="exec-card ec-blue">
+      <div class="ec-label">Documentation Gap</div>
+      <div class="ec-val">${n(d.undocumented)}</div>
+      <div class="ec-sub">readmissions with no documented reason, a data-quality finding the platform surfaces</div>
+    </div>`;
+  const card = document.getElementById('execDistCard');
+  const dist = d.risk_dist || {};
+  const total = (dist.CRITICAL||0)+(dist.HIGH||0)+(dist.MEDIUM||0)+(dist.LOW||0);
+  if (total > 0 && card) {
+    const seg = (label,val,color) => {
+      return `<div style="flex:${val||0.2}"><div class="seg" style="background:${color}"></div><div style="font-size:11px;color:var(--text2);margin-top:5px;text-align:center">${label} ${val}</div></div>`;
+    };
+    document.getElementById('execDist').innerHTML = '<div class="exec-dist">' +
+      seg('CRITICAL', dist.CRITICAL||0, '#D32F2F') +
+      seg('HIGH', dist.HIGH||0, '#E8651E') +
+      seg('MEDIUM', dist.MEDIUM||0, '#F0B429') +
+      seg('LOW', dist.LOW||0, '#2E8B57') +
+      '</div><div class="exec-note">Distinct patients per risk level, scored by the Snowflake Cortex model. Counts are live; dollar figures apply published CMS/AHRQ rates (illustrative methodology, not billing data).</div>';
+    card.style.display = 'block';
+  }
+}
+
+async function refreshAll() {
+  if (!CURRENT_ROLE) return;
+  const tasks = [loadHealth()];
+  if (CURRENT_ROLE === 'admin') tasks.push(loadPipeline(), loadDLQ());
+  if (CURRENT_ROLE === 'provider') tasks.push(loadPatients(), loadAlerts(), loadPriority());
+  if (CURRENT_ROLE === 'executive') tasks.push(loadExecutive());
+  await Promise.all(tasks);
+}
+(async () => { await initRole(); await refreshAll(); setInterval(refreshAll, 10000); })();
+</script>
+</body>
+</html>

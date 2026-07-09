@@ -1,0 +1,33 @@
+{
+  "name": "jdbc-source-postgres",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+    "connection.url": "jdbc:postgresql://postgres:5432/healthstream_ehr",
+    "connection.user": "ehr_admin",
+    "connection.password": "ehr_secure_2024",
+
+    "table.whitelist": "patient_conditions",
+    "mode": "timestamp",
+    "timestamp.column.name": "updated_at",
+    "validate.non.null": false,
+
+    "topic.prefix": "",
+    "transforms": "routeToTopic,extractPatientKey",
+
+    "transforms.routeToTopic.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.routeToTopic.regex": "patient_conditions",
+    "transforms.routeToTopic.replacement": "patient-conditions",
+
+    "transforms.extractPatientKey.type": "org.apache.kafka.connect.transforms.ValueToKey",
+    "transforms.extractPatientKey.fields": "patient_id",
+
+    "poll.interval.ms": 10000,
+    "batch.max.rows": 100,
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081",
+
+    "tasks.max": 1
+  }
+}

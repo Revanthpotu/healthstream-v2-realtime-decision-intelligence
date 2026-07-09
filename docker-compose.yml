@@ -1,0 +1,310 @@
+# ============================================================================
+# HealthStream v2 — Docker Compose
+# ============================================================================
+# This file defines ALL infrastructure for the project.
+# One command (docker-compose up -d) starts everything.
+# ============================================================================
+
+version: '3.8'
+
+networks:
+  healthstream:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  mysql-data:
+  redis-data:
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
+    networks:
+      - healthstream
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      retries: 10
+      interval: 10s
+      timeout: 5s
+
+  # ── KAFKA BROKER 1 of 3 
+  kafka-1:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: kafka-1
+    container_name: kafka-1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-1:29092,EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_RETENTION_HOURS: 720
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 3000
+    networks:
+      - healthstream
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:29092 > /dev/null 2>&1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ── KAFKA BROKER 2 of 3
+  kafka-2:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: kafka-2
+    container_name: kafka-2
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-2:29093,EXTERNAL://localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_RETENTION_HOURS: 720
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 3000
+    networks:
+      - healthstream
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:29093 > /dev/null 2>&1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ── KAFKA BROKER 3 of 3 
+  kafka-3:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: kafka-3
+    container_name: kafka-3
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-3:29094,EXTERNAL://localhost:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_RETENTION_HOURS: 720
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 3000
+    networks:
+      - healthstream
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:29094 > /dev/null 2>&1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ── SCHEMA REGISTRY — Data Contract Enforcement 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: BACKWARD
+    networks:
+      - healthstream
+    healthcheck:
+      test: curl -f http://localhost:8081/subjects || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── KAFKA CONNECT — Connector Runtime 
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.6.0
+    hostname: kafka-connect
+    container_name: kafka-connect
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: healthstream-connect
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
+    command:
+      - bash
+      - -c
+      - |
+        echo "Installing connectors..."
+        confluent-hub install --no-prompt debezium/debezium-connector-mysql:2.4.2
+        confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.7.6
+        echo "Downloading JDBC drivers..."
+        cd /usr/share/confluent-hub-components/confluentinc-kafka-connect-jdbc/lib
+        curl -sL https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.2.0/mysql-connector-j-8.2.0.jar -o mysql-connector-j-8.2.0.jar
+        curl -sL https://jdbc.postgresql.org/download/postgresql-42.7.1.jar -o postgresql-42.7.1.jar
+        echo "Starting Kafka Connect..."
+        /etc/confluent/docker/run
+    networks:
+      - healthstream
+    healthcheck:
+      test: curl -f http://localhost:8083/connectors || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+
+  # ── ksqlDB — Stream Processing Engine 
+  ksqldb:
+    image: confluentinc/cp-ksqldb-server:7.6.0
+    hostname: ksqldb
+    container_name: ksqldb
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8088:8088"
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KSQL_KSQL_SERVICE_ID: healthstream-ksqldb
+      KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
+    networks:
+      - healthstream
+    healthcheck:
+      test: curl -f http://localhost:8088/info || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+
+  # ── POSTGRESQL — Source B (EHR / Patient Conditions) 
+  postgres:
+    image: postgres:15
+    hostname: postgres
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: healthstream_ehr
+      POSTGRES_USER: ehr_admin
+      POSTGRES_PASSWORD: ehr_secure_2024
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./databases/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - healthstream
+    healthcheck:
+      test: pg_isready -U ehr_admin -d healthstream_ehr
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MYSQL — Source C (Pharmacy / Medications) ─────────────────────────────
+  mysql:
+    image: mysql:8.0
+    hostname: mysql
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secure_2024
+      MYSQL_DATABASE: healthstream_pharmacy
+      MYSQL_USER: pharmacy_admin
+      MYSQL_PASSWORD: pharmacy_secure_2024
+    command:
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --binlog-row-image=FULL
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./databases/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - healthstream
+    healthcheck:
+      test: mysqladmin ping -h localhost -u root -proot_secure_2024
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── REDIS — Context Serving Layer ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    hostname: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - healthstream
+    healthcheck:
+      test: redis-cli ping | grep PONG
+      interval: 10s
+      timeout: 5s
+      retries: 5

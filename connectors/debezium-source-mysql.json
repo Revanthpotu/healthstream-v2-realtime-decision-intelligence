@@ -1,0 +1,43 @@
+{
+  "name": "debezium-source-mysql",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "database.hostname": "mysql",
+    "database.port": "3306",
+    "database.user": "debezium",
+    "database.password": "debezium_secure_2024",
+    "database.server.id": "184054",
+
+    "topic.prefix": "healthstream",
+    "database.include.list": "healthstream_pharmacy",
+    "table.include.list": "healthstream_pharmacy.patient_medications",
+
+    "schema.history.internal.kafka.bootstrap.servers": "kafka-1:29092",
+    "schema.history.internal.kafka.topic": "_schema-history-medications",
+
+    "transforms": "routeToTopic,unwrap",
+
+    "transforms.routeToTopic.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.routeToTopic.regex": "healthstream\\.healthstream_pharmacy\\.patient_medications",
+    "transforms.routeToTopic.replacement": "patient-medications",
+
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": false,
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+    "transforms.unwrap.add.fields": "op,source.ts_ms",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081",
+
+    "snapshot.mode": "initial",
+    "include.schema.changes": false,
+    "provide.transaction.metadata": false,
+
+    "errors.tolerance": "none",
+    "errors.log.enable": true,
+    "errors.log.include.messages": true,
+
+    "tasks.max": 1
+  }
+}

@@ -1,0 +1,26 @@
+# ============================================================================
+# HealthStream v2 — Python Dependencies
+# ============================================================================
+# Install: pip install -r requirements.txt
+# ============================================================================
+
+# Kafka client + Avro + Schema Registry
+confluent-kafka[avro]==2.6.1
+
+# Avro serialization
+fastavro==1.12.1
+
+# Redis client (for Context Materializer - Step 6)
+redis==5.2.1
+
+# HTTP requests (for Kafka Connect REST API, ksqlDB API)
+requests==2.32.3
+
+# OpenAI client (for AI Agent - Step 8)
+openai==1.82.0
+
+# Data processing
+pandas==2.2.3
+
+# Environment variables
+python-dotenv==1.0.1
