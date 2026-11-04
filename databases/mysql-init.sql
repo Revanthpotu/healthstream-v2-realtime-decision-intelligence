@@ -32,10 +32,9 @@ CREATE TABLE IF NOT EXISTS patient_medications (
 -- GRANT Debezium permissions
 -- Debezium needs: SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT
 -- These let it read the binlog as if it were a MySQL replica
--- ============================================================================
-CREATE USER IF NOT EXISTS 'debezium'@'%' IDENTIFIED BY 'debezium_secure_2024';
-GRANT SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'debezium'@'%';
-FLUSH PRIVILEGES;
+-- The 'debezium' user is created by databases/mysql-init-debezium.sh
+-- (a .sh init script, so it can read DEBEZIUM_PASSWORD from the container
+-- environment) instead of embedding a password in this SQL file.
 
 -- ============================================================================
 -- Seed data: medications for 30 patients (matching P001-P030)
