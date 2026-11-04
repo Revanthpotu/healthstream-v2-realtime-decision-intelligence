@@ -5,7 +5,7 @@
     "database.hostname": "mysql",
     "database.port": "3306",
     "database.user": "debezium",
-    "database.password": "debezium_secure_2024",
+    "database.password": "${DEBEZIUM_PASSWORD}",
     "database.server.id": "184054",
 
     "topic.prefix": "healthstream",
