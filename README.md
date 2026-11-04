@@ -4,7 +4,27 @@ An end-to-end portfolio project that takes a hospital from monitoring to decisio
 
 Kafka streaming -> Snowflake Cortex ML -> closed-loop scoring -> role-based decision dashboard -> 4 GPT-4o agents
 
-![Architecture](architecture/HealthStream-Architecture.png)
+## Architecture
+
+```mermaid
+flowchart LR
+    CSV[Synthea CSV<br/>observations.csv + patients.csv<br/>data/synthea - not in repo] --> PROD[producer/csv_producer.py<br/>VitalsProducer<br/>validate_vital + AvroSerializer]
+    PG[(PostgreSQL EHR)] --> JDBC[connectors/jdbc-source-postgres.json<br/>JdbcSourceConnector] --> COND[patient-conditions]
+    MY[(MySQL Pharmacy)] --> DEB[connectors/debezium-source-mysql.json<br/>Debezium CDC] --> MEDS[patient-medications]
+    PROD -->|Avro, Schema Registry| VITALS[patient-vitals]
+    PROD -->|send_to_dlq, with error_reason| DLQ[dead-letter-queue]
+    VITALS --> KSQL[processing/ksqldb_statements.sql<br/>streams + latest tables]
+    COND --> KSQL
+    MEDS --> KSQL
+    VITALS --> MAT[context-engine/context_materializer.py]
+    COND --> MAT
+    MEDS --> MAT
+    DLQ --> MAT
+    MAT -->|patient:{pid}, 24h TTL| REDIS[(Redis)]
+    SF[(Snowflake<br/>HEALTHSTREAM.ML.PATIENT_RISK_LEVELS<br/>existing table, training not in repo)] --> PUB[risk_score_publisher.py] --> RISK[patient-risk-scores] --> CONS[risk_score_consumer.py] -->|risk:{pid}, 24h TTL| REDIS
+    REDIS --> DASH[dashboard/api.py<br/>Flask, localhost:5050<br/>Action Queue, /api/executive]
+    REDIS --> AGENTS[4 GPT-4o agents<br/>HealthStreamAgent, AnalyticsAgent,<br/>IntegrationAgent, DLQMonitorAgent]
+```
 
 Note: All data is synthetic (Synthea). Accuracy figures illustrate the method, not clinical results.
 
