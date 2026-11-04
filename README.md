@@ -28,6 +28,39 @@ flowchart LR
 
 Note: All data is synthetic (Synthea). Accuracy figures illustrate the method, not clinical results.
 
+## Quick demo
+
+Documented commands, not a verified end-to-end run. The full demo has not
+been verified end-to-end in this repo state.
+
+```bash
+docker compose up -d
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python producer/csv_producer.py
+python context-engine/context_materializer.py
+python dashboard/api.py
+```
+
+What you should see: producer stats (produced / DLQ counts), materializer
+Redis writes, and the dashboard API at `localhost:5050`.
+
+Caveats, plainly stated:
+
+- The full demo needs a `.env` file with Snowflake and OpenAI variables
+  (see `.env.example` for the variable names) and Synthea CSVs in
+  `data/synthea/` (not in the repo; that directory is gitignored).
+- Local database passwords for the Docker containers come from `.env`
+  only. Connector JSON files contain `${VAR}` placeholders, and
+  `scripts/deploy_connectors.sh` substitutes them from the environment
+  at deploy time. `.env` itself is gitignored and must never be committed.
+- The MySQL Debezium user is created at container init by
+  `databases/mysql-init-debezium.sh` from the container environment,
+  not from a password in a tracked SQL file.
+
+See [Quick Start](#quick-start) below for the existing detailed steps.
+
 ---
 
 ## What It Does
