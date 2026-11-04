@@ -191,8 +191,8 @@ services:
       - -c
       - |
         echo "Installing connectors..."
-        confluent-hub install --no-prompt debezium/debezium-connector-mysql:2.4.2
-        confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.7.6
+        confluent-hub install --no-p${MYSQL_ROOT_PASSWORD} debezium/debezium-connector-mysql:2.4.2
+        confluent-hub install --no-p${MYSQL_ROOT_PASSWORD} confluentinc/kafka-connect-jdbc:10.7.6
         echo "Downloading JDBC drivers..."
         cd /usr/share/confluent-hub-components/confluentinc-kafka-connect-jdbc/lib
         curl -sL https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.2.0/mysql-connector-j-8.2.0.jar -o mysql-connector-j-8.2.0.jar
@@ -249,7 +249,7 @@ services:
     environment:
       POSTGRES_DB: healthstream_ehr
       POSTGRES_USER: ehr_admin
-      POSTGRES_PASSWORD: ehr_secure_2024
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./databases/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -269,10 +269,11 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: root_secure_2024
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: healthstream_pharmacy
       MYSQL_USER: pharmacy_admin
-      MYSQL_PASSWORD: pharmacy_secure_2024
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      DEBEZIUM_PASSWORD: ${DEBEZIUM_PASSWORD}
     command:
       - --server-id=1
       - --log-bin=mysql-bin
@@ -283,10 +284,11 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
       - ./databases/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./databases/mysql-init-debezium.sh:/docker-entrypoint-initdb.d/init-debezium.sh
     networks:
       - healthstream
     healthcheck:
-      test: mysqladmin ping -h localhost -u root -proot_secure_2024
+      test: mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}
       interval: 10s
       timeout: 5s
       retries: 5
