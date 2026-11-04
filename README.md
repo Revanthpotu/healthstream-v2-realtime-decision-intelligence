@@ -151,6 +151,11 @@ docker-compose.yml   10-container infrastructure
   here, and no placeholder screenshots are used.
 - The full demo has not been verified end-to-end. See
   [Quick demo](#quick-demo).
+- The mocked pytest suite in `tests/` covers producer validation, DLQ
+  routing, and the risk-score consumer with mocked external services
+  only. It does not cover the full Docker/Kafka/Snowflake/OpenAI demo
+  end-to-end. Install pytest for tests only with
+  `pip install pytest`; it is not added to `requirements.txt`.
 
 ## Quick Start
 
