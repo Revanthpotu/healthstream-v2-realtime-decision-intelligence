@@ -1,6 +1,6 @@
 # HealthStream v2 - Real-Time Healthcare Decision Intelligence
 
-A production-grade platform that takes a hospital from monitoring to decision intelligence, fusing real-time patient vitals with machine-learning risk predictions into a single ranked action list.
+An end-to-end portfolio project that takes a hospital from monitoring to decision intelligence, fusing real-time patient vitals with machine-learning risk predictions into a single ranked action list.
 
 Kafka streaming -> Snowflake Cortex ML -> closed-loop scoring -> role-based decision dashboard -> 4 GPT-4o agents
 
@@ -72,5 +72,4 @@ Requires a .env file with SNOWFLAKE_* and OPENAI_API_KEY variables. Secrets are 
 
 ## Author
 
-Revanth Kumar Potu - Data Engineer
-AWS Certified Data Engineer Associate - Azure Data Engineer Associate - Snowflake SnowPro Core
+Built by [L P Revanth Kumar Potu](https://github.com/Revanthpotu) · [LinkedIn](https://linkedin.com/in/revanthpotu)
