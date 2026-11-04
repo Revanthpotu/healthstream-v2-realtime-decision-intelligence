@@ -33,12 +33,34 @@ done
 
 echo ""
 
+# Substitute ${VAR} placeholders in a connector JSON file from the environment.
+# Connector JSON files under connectors/ contain placeholders, not passwords.
+# Fails if a referenced variable is unset, instead of posting a placeholder.
+substitute_connector() {
+    local input="$1" output="$2"
+    python3 - "$input" "$output" <<'PYEOF'
+import os, re, sys
+text = open(sys.argv[1]).read()
+def repl(m):
+    var = m.group(1)
+    if var not in os.environ or not os.environ[var]:
+        sys.exit("ERROR: " + var + " is not set; copy .env.example to .env and fill it in")
+    return os.environ[var]
+open(sys.argv[2], "w").write(re.sub(r"\$\{([A-Z_]+)\}", repl, text))
+PYEOF
+}
+
+
 # ── Deploy JDBC Source Connector (Method 2: PostgreSQL → Kafka) ─────────
 echo "[Method 2] Deploying JDBC Source Connector (PostgreSQL → patient-conditions)..."
+if ! substitute_connector "$PROJECT_DIR/connectors/jdbc-source-postgres.json" /tmp/jdbc-source-postgres.json; then
+    echo "  ✗ JDBC connector deployment failed: required environment variable is not set"
+    exit 1
+fi
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
     "$CONNECT_URL/connectors" \
     -H "Content-Type: application/json" \
-    -d @"$PROJECT_DIR/connectors/jdbc-source-postgres.json")
+    -d @/tmp/jdbc-source-postgres.json)
 
 if [ "$RESPONSE" = "201" ] || [ "$RESPONSE" = "200" ]; then
     echo "  ✓ JDBC connector deployed successfully"
@@ -50,7 +72,7 @@ else
     curl -s -X PUT \
         "$CONNECT_URL/connectors/jdbc-source-postgres/config" \
         -H "Content-Type: application/json" \
-        -d "$(cat $PROJECT_DIR/connectors/jdbc-source-postgres.json | python3 -c 'import sys,json; print(json.dumps(json.load(sys.stdin)["config"]))')" \
+        -d "$(cat /tmp/jdbc-source-postgres.json | python3 -c 'import sys,json; print(json.dumps(json.load(sys.stdin)["config"]))')" \
         > /dev/null 2>&1
     echo "  ✓ JDBC connector updated"
 fi
@@ -59,10 +81,14 @@ echo ""
 
 # ── Deploy Debezium CDC Connector (Method 3: MySQL → Kafka) ────────────
 echo "[Method 3] Deploying Debezium CDC Connector (MySQL → patient-medications)..."
+if ! substitute_connector "$PROJECT_DIR/connectors/debezium-source-mysql.json" /tmp/debezium-source-mysql.json; then
+    echo "  ✗ Debezium connector deployment failed: required environment variable is not set"
+    exit 1
+fi
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
     "$CONNECT_URL/connectors" \
     -H "Content-Type: application/json" \
-    -d @"$PROJECT_DIR/connectors/debezium-source-mysql.json")
+    -d @/tmp/debezium-source-mysql.json)
 
 if [ "$RESPONSE" = "201" ] || [ "$RESPONSE" = "200" ]; then
     echo "  ✓ Debezium connector deployed successfully"
@@ -74,7 +100,7 @@ else
     curl -s -X PUT \
         "$CONNECT_URL/connectors/debezium-source-mysql/config" \
         -H "Content-Type: application/json" \
-        -d "$(cat $PROJECT_DIR/connectors/debezium-source-mysql.json | python3 -c 'import sys,json; print(json.dumps(json.load(sys.stdin)["config"]))')" \
+        -d "$(cat /tmp/debezium-source-mysql.json | python3 -c 'import sys,json; print(json.dumps(json.load(sys.stdin)["config"]))')" \
         > /dev/null 2>&1
     echo "  ✓ Debezium connector updated"
 fi
