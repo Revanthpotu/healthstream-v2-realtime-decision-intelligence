@@ -76,7 +76,7 @@ These combine into a ranked Action Priority Queue that tells clinicians who to s
 
 Layer 1 - Real-Time Operations: CSV -> Python producer (Avro-validated) -> Kafka (3 brokers) -> ksqlDB -> materializer -> Redis -> dashboard
 
-Layer 2 - Lakehouse + ML: Snowflake (RAW / ANALYTICS / ML schemas) + Cortex model predicting 30-day readmission risk, trained in SQL inside the warehouse
+Layer 2 - Lakehouse + ML: Snowflake (RAW / ANALYTICS / ML schemas) + the existing model-output table HEALTHSTREAM.ML.PATIENT_RISK_LEVELS. No Cortex training SQL is in this repo.
 
 Layer 3 - Decision Intelligence: Action Queue, risk explainability, financial impact, and 4 AI agents
 
@@ -111,6 +111,46 @@ monitoring/          Health monitor
 security/            Kafka ACLs
 risk_score_publisher.py / risk_score_consumer.py   Closed-loop scoring
 docker-compose.yml   10-container infrastructure
+
+## Design Decisions
+
+- Avro and Schema Registry at the producer. Malformed records are rejected
+  before any consumer reads them. Failed records go to the
+  dead-letter-queue with the payload and the error reason, so nothing is
+  silently dropped.
+- Custom validation before Avro: `validate_vital` in
+  `producer/csv_producer.py` checks numeric value, medical range, known
+  patient, and a present date before serialization. A serializer failure
+  in `produce_vital` is routed to the dead-letter-queue as a
+  `PRODUCTION_ERROR`.
+- Redis for current patient context: the dashboard reads the latest state
+  from Redis.
+- Scores flow Snowflake -> Kafka topic `patient-risk-scores` -> Redis:
+  `risk_score_publisher.py` reads
+  `HEALTHSTREAM.ML.PATIENT_RISK_LEVELS` and publishes to
+  `patient-risk-scores`; `risk_score_consumer.py` writes `risk:{pid}` to
+  Redis with a 24-hour TTL.
+- Three ingestion patterns exist: a custom CSV producer, a JDBC source
+  connector, and Debezium CDC.
+- ksqlDB streams and tables are defined in
+  `processing/ksqldb_statements.sql`.
+- Agents in this repo, as named in code, each with `MODEL = "gpt-4o"`:
+  `HealthStreamAgent`, `AnalyticsAgent`, `DLQMonitorAgent`,
+  `IntegrationAgent`.
+
+## Limitations
+
+- All data is synthetic (Synthea). Accuracy figures show the method, not
+  clinical performance.
+- Runs on one machine with Docker Compose.
+- The AWS production path listed in this README (MSK, Managed Flink,
+  ElastiCache, ECS/Lambda, Glue Schema Registry) has not been deployed.
+- No Cortex training SQL is in this repo. Only the existing
+  model-output table `HEALTHSTREAM.ML.PATIENT_RISK_LEVELS` is referenced.
+- Dashboard screenshots are TODO from a real demo run. None are included
+  here, and no placeholder screenshots are used.
+- The full demo has not been verified end-to-end. See
+  [Quick demo](#quick-demo).
 
 ## Quick Start
 
